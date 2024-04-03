@@ -1,6 +1,9 @@
-
 data/
 model/
 result/
 runs/
 *.pt
+classify/
+datasets/
+models/
+*.xlsx
