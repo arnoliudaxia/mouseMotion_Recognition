@@ -1,3 +1,5 @@
+import operator
+import re
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -10,12 +12,16 @@ with st.chat_message("ai"):
 
 if uploaded_file is not None:
     status=st.status("处理中...", expanded=True)
+    st.write("注意图表右上角可以expand到全屏")
     # 读取文本文件内容
     file_contents = uploaded_file.read().decode("utf-8")
     lines=file_contents.split("\n")
-    lines = [line for line in lines[3:] if "frame" in line]
-    classHistory = [[line.split(" ")[-5], float(line.split(" ")[-4][:-1]), i] for i, line in
-                    enumerate(lines)]  # 每个元素是[分类，置信度]
+    lines=[line for line in lines[3:] if "vomit" in line]
+    FrameNum=[int(re.findall(r'.*/([^/]+\.png)', line)[0].split(".")[0]) for line in lines]
+    classHistory=[[line.split(" ")[-5],float(line.split(" ")[-4][:-1]),i] for i,line in zip(FrameNum,lines)] # 每个元素是[分类，置信度]
+    classHistory=sorted(classHistory, key=operator.itemgetter(2))
+
+
     blockLen=5000
     if len(classHistory)>blockLen:
         st.info("数据过多，将进行分区处理")
@@ -41,7 +47,6 @@ if uploaded_file is not None:
     # for ref in refVmoitStart:
     #     fig.add_vline(x=ref, line_dash='dash', line_color='red', annotation_text='vmoit',
     #                   annotation_position="top left")
-    st.write("注意图表右上角可以expand到全屏")
     st.plotly_chart(fig)
     status.write("绘制Raw图表")
 
@@ -49,6 +54,7 @@ if uploaded_file is not None:
     data = np.array(classHistoryPureDigital)
     signal_cls = data[:, 0] * 2 - 1
     score = data[:, 1] * signal_cls
+    # score = np.exp(data[:, 1]) * signal_cls
 
 
     def sliding_window(arr, window_size):
@@ -85,6 +91,11 @@ if uploaded_file is not None:
 
     # 设置布局
     fig.update_layout(title='滑动窗口峰值')
+
+    refVmoitStart = [316, 840, 1452, 1881, 2280,2773]
+    for ref in refVmoitStart:
+        fig.add_vline(x=ref, line_dash='dash', line_color='red', annotation_text='vmoit',
+                      annotation_position="top left")
 
     st.plotly_chart(fig)
     status.write("绘制滑动窗口峰值图表")
